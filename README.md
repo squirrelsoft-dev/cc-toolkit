@@ -10,39 +10,6 @@ A minimal, composable toolkit for scaffolding and optimizing Claude Code project
 4. **Rules are scoped context** — Path-specific rules load only when relevant, keeping context tight.
 5. **Shell aliases are muscle memory** — 2-3 characters to launch Claude with the right context every time.
 
-## What's Included
-
-```
-cc-toolkit/
-├── README.md                    # You are here
-├── init.sh                      # Project scaffolder — run once per project
-├── shell-aliases.sh             # Source in ~/.zshrc or ~/.bashrc
-├── templates/
-│   ├── CLAUDE.md.tmpl           # Starter CLAUDE.md (customized by init.sh)
-│   ├── settings.json.tmpl       # Hooks + permissions template
-│   ├── settings.local.json.tmpl # Personal hooks template
-│   └── rules/                   # Path-scoped rule templates
-│       ├── general.md           # Universal rules (no path scope)
-│       ├── api.md               # Backend/API rules
-│       ├── frontend.md          # React/frontend rules
-│       └── testing.md           # Test rules
-├── hooks/
-│   ├── stop-typecheck.ts        # Block stop if type errors exist
-│   ├── stop-test.sh             # Block stop if tests fail
-│   ├── post-format.sh           # Auto-format after writes
-│   └── session-context.sh       # Inject git state on session start
-├── commands/
-│   ├── scaffold.md              # /scaffold — generate feature structure
-│   ├── plan.md                  # /plan — structured planning workflow
-│   ├── commit.md                # /commit — conventional commit messages
-│   ├── pr.md                    # /pr — generate PR with full context
-│   ├── fix-issue.md             # /fix-issue — analyze + fix GitHub issue
-│   └── review.md                # /review — review staged changes
-└── agents/
-    ├── architect.md             # Planning + architecture decisions
-    └── implementer.md           # Code implementation from specs
-```
-
 ## Quick Start
 
 ```bash
@@ -63,6 +30,43 @@ Then scaffold any project:
 ```bash
 cd your-project
 ccinit
+```
+
+## What's Included
+
+```
+cc-toolkit/
+├── README.md
+├── install.sh                   # curl-installable setup script
+├── init.sh                      # Project scaffolder — run once per project
+├── shell-aliases.sh             # Source in ~/.zshrc or ~/.bashrc
+└── templates/
+    ├── CLAUDE.md.tmpl
+    ├── settings.json.tmpl
+    ├── settings.local.json.tmpl
+    ├── rules/
+    │   ├── general.md
+    │   ├── api.md
+    │   ├── frontend.md
+    │   ├── testing.md
+    │   └── security.md
+    ├── hooks/
+    │   ├── stop-typecheck.ts
+    │   ├── stop-quality-gate.sh
+    │   ├── guard.sh
+    │   ├── task-summary.sh
+    │   └── save-context.sh
+    ├── commands/
+    │   ├── plan.md
+    │   ├── scaffold.md
+    │   ├── commit.md
+    │   ├── pr.md
+    │   ├── fix-issue.md
+    │   ├── review.md
+    │   └── security-scan.md
+    └── agents/
+        ├── architect.md
+        └── implementer.md
 ```
 
 ## Customization

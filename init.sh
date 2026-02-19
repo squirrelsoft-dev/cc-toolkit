@@ -98,6 +98,7 @@ echo "📁 Creating .claude/ structure..."
 mkdir -p "$PROJECT_DIR/.claude/commands"
 mkdir -p "$PROJECT_DIR/.claude/hooks"
 mkdir -p "$PROJECT_DIR/.claude/rules"
+mkdir -p "$PROJECT_DIR/.claude/agents"
 
 # --- CLAUDE.md ---
 echo "📝 Generating CLAUDE.md..."
@@ -232,7 +233,17 @@ LOCALSET
 # --- Rules ---
 echo "📏 Generating rules..."
 
-cat > "$PROJECT_DIR/.claude/rules/general.md" << 'RULES'
+# Copy templates if available, otherwise generate inline
+if [[ -d "$SCRIPT_DIR/templates/rules" ]]; then
+  cp "$SCRIPT_DIR/templates/rules/general.md" "$PROJECT_DIR/.claude/rules/"
+  cp "$SCRIPT_DIR/templates/rules/testing.md" "$PROJECT_DIR/.claude/rules/"
+  cp "$SCRIPT_DIR/templates/rules/security.md" "$PROJECT_DIR/.claude/rules/"
+  if [[ "$LANG" == "typescript" ]] || [[ "$LANG" == "javascript" ]]; then
+    cp "$SCRIPT_DIR/templates/rules/api.md" "$PROJECT_DIR/.claude/rules/"
+    cp "$SCRIPT_DIR/templates/rules/frontend.md" "$PROJECT_DIR/.claude/rules/"
+  fi
+else
+  cat > "$PROJECT_DIR/.claude/rules/general.md" << 'RULES'
 # General Rules
 
 - Diagnose before fixing: explain possible causes before changing code
@@ -243,44 +254,7 @@ cat > "$PROJECT_DIR/.claude/rules/general.md" << 'RULES'
 - Never swallow exceptions silently
 RULES
 
-if [[ "$LANG" == "typescript" ]] || [[ "$LANG" == "javascript" ]]; then
-cat > "$PROJECT_DIR/.claude/rules/api.md" << 'RULES'
----
-paths:
-  - "src/api/**/*.{ts,tsx,js,jsx}"
-  - "src/routes/**/*.{ts,tsx,js,jsx}"
-  - "src/server/**/*.{ts,tsx,js,jsx}"
-  - "app/api/**/*.{ts,tsx,js,jsx}"
----
-
-# API Rules
-
-- All endpoints must include input validation
-- Use typed request/response schemas
-- Return consistent error formats with appropriate HTTP status codes
-- Include rate limiting on public endpoints
-- Use parameterized queries or ORM — never raw string interpolation for SQL
-RULES
-
-cat > "$PROJECT_DIR/.claude/rules/frontend.md" << 'RULES'
----
-paths:
-  - "src/components/**/*.{tsx,jsx}"
-  - "src/app/**/*.{tsx,jsx}"
-  - "app/**/*.{tsx,jsx}"
----
-
-# Frontend Rules
-
-- Components should be focused and composable
-- Include error boundaries and loading states
-- Use semantic HTML and ARIA attributes for accessibility
-- Keep component files under 200 lines; extract subcomponents
-- Co-locate styles, types, and tests with components
-RULES
-fi
-
-cat > "$PROJECT_DIR/.claude/rules/testing.md" << 'RULES'
+  cat > "$PROJECT_DIR/.claude/rules/testing.md" << 'RULES'
 ---
 paths:
   - "**/*.test.*"
@@ -298,11 +272,61 @@ paths:
 - Mock external services, never hit real APIs in tests
 RULES
 
-# --- Hooks (file-based) ---
+  if [[ "$LANG" == "typescript" ]] || [[ "$LANG" == "javascript" ]]; then
+    cat > "$PROJECT_DIR/.claude/rules/api.md" << 'RULES'
+---
+paths:
+  - "src/api/**/*.{ts,tsx,js,jsx}"
+  - "src/routes/**/*.{ts,tsx,js,jsx}"
+  - "src/server/**/*.{ts,tsx,js,jsx}"
+  - "app/api/**/*.{ts,tsx,js,jsx}"
+---
+
+# API Rules
+
+- All endpoints must include input validation
+- Use typed request/response schemas
+- Return consistent error formats with appropriate HTTP status codes
+- Include rate limiting on public endpoints
+- Use parameterized queries or ORM — never raw string interpolation for SQL
+RULES
+
+    cat > "$PROJECT_DIR/.claude/rules/frontend.md" << 'RULES'
+---
+paths:
+  - "src/components/**/*.{tsx,jsx}"
+  - "src/app/**/*.{tsx,jsx}"
+  - "app/**/*.{tsx,jsx}"
+---
+
+# Frontend Rules
+
+- Components should be focused and composable
+- Include error boundaries and loading states
+- Use semantic HTML and ARIA attributes for accessibility
+- Keep component files under 200 lines; extract subcomponents
+- Co-locate styles, types, and tests with components
+RULES
+  fi
+fi
+
+# --- Hooks ---
 echo "🪝 Generating hooks..."
 
-if [[ "$LANG" == "typescript" ]]; then
-cat > "$PROJECT_DIR/.claude/hooks/stop-typecheck.ts" << 'HOOK'
+if [[ -d "$SCRIPT_DIR/templates/hooks" ]]; then
+  cp "$SCRIPT_DIR/templates/hooks/guard.sh" "$PROJECT_DIR/.claude/hooks/"
+  cp "$SCRIPT_DIR/templates/hooks/task-summary.sh" "$PROJECT_DIR/.claude/hooks/"
+  cp "$SCRIPT_DIR/templates/hooks/save-context.sh" "$PROJECT_DIR/.claude/hooks/"
+  chmod +x "$PROJECT_DIR/.claude/hooks/"*.sh
+  if [[ "$LANG" == "typescript" ]]; then
+    cp "$SCRIPT_DIR/templates/hooks/stop-typecheck.ts" "$PROJECT_DIR/.claude/hooks/"
+  fi
+  # Copy quality gate and replace test command placeholder
+  sed "s|{{TEST_CMD}}|$TEST_CMD|g" "$SCRIPT_DIR/templates/hooks/stop-quality-gate.sh" > "$PROJECT_DIR/.claude/hooks/stop-quality-gate.sh"
+  chmod +x "$PROJECT_DIR/.claude/hooks/stop-quality-gate.sh"
+else
+  if [[ "$LANG" == "typescript" ]]; then
+    cat > "$PROJECT_DIR/.claude/hooks/stop-typecheck.ts" << 'HOOK'
 import type { StopHookInput, HookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 
 const input: StopHookInput = await Bun.stdin.json();
@@ -329,12 +353,16 @@ if (typecheckErrors.trim().length > 0 && typecheckErrors.includes("error TS")) {
 const output: HookJSONOutput = { decision: "approve" };
 console.log(JSON.stringify(output));
 HOOK
+  fi
 fi
 
 # --- Commands ---
 echo "📋 Generating commands..."
 
-cat > "$PROJECT_DIR/.claude/commands/plan.md" << 'CMD'
+if [[ -d "$SCRIPT_DIR/templates/commands" ]]; then
+  cp "$SCRIPT_DIR/templates/commands/"*.md "$PROJECT_DIR/.claude/commands/"
+else
+  cat > "$PROJECT_DIR/.claude/commands/plan.md" << 'CMD'
 ---
 description: "Structured planning before implementation"
 ---
@@ -358,32 +386,7 @@ You are entering **Plan Mode**. Do NOT write any code yet.
 Do NOT implement anything until the user approves the plan.
 CMD
 
-cat > "$PROJECT_DIR/.claude/commands/scaffold.md" << 'CMD'
----
-description: "Generate feature directory structure with boilerplate"
----
-
-# Feature Scaffold
-
-Create a complete feature directory for `$ARGUMENTS` following project conventions.
-
-## Steps
-
-1. **Analyze** existing features in the codebase for patterns (directory structure, naming, exports).
-2. **Generate** the feature directory with:
-   - Main component/module file
-   - Type definitions
-   - Unit test file with at least 3 test cases (render, interaction, error state)
-   - Index/barrel export
-   - README with usage examples
-3. **Create a feature branch**: `feature/$ARGUMENTS`
-4. **Verify** the generated files pass linting and type checks.
-5. **Stage** the generated files.
-
-Follow existing patterns exactly. Do not invent new conventions.
-CMD
-
-cat > "$PROJECT_DIR/.claude/commands/commit.md" << 'CMD'
+  cat > "$PROJECT_DIR/.claude/commands/commit.md" << 'CMD'
 ---
 description: "Generate conventional commit message from staged changes"
 ---
@@ -413,82 +416,16 @@ feat, fix, docs, style, refactor, test, chore, perf, ci, build
 
 Output ONLY the commit message, nothing else. Then run `git commit -m "<message>"`.
 CMD
+fi
 
-cat > "$PROJECT_DIR/.claude/commands/pr.md" << 'CMD'
----
-description: "Create a pull request with full context"
----
+# — Agents —
 
-# Pull Request Generator
+echo "🤖 Generating agents…"
 
-Create a comprehensive PR for the current branch.
-
-## Steps
-
-1. **Diff analysis** — Run `git diff main...HEAD` to understand all changes.
-2. **Generate PR body:**
-   - **What changed** — bullet points of key changes
-   - **Why** — business context and motivation
-   - **How to test** — step-by-step verification instructions
-   - **Test coverage** — what tests were added/modified
-   - **Breaking changes** — if any
-3. **Generate title** — conventional format: `type(scope): description`
-4. **Create PR** — use `gh pr create --title "..." --body "..."` to open the PR.
-5. **Link issues** — scan commits for issue references and include `Closes #N` in the body.
-CMD
-
-cat > "$PROJECT_DIR/.claude/commands/fix-issue.md" << 'CMD'
----
-description: "Analyze and fix a GitHub issue end-to-end"
----
-
-# Fix GitHub Issue
-
-Resolve issue `$ARGUMENTS` from analysis through PR creation.
-
-## Steps
-
-1. **Fetch** — `gh issue view $ARGUMENTS` to get the full issue context.
-2. **Analyze** — Identify affected files, root cause, and reproduction steps.
-3. **Branch** — Create `fix/issue-$ARGUMENTS` from latest main.
-4. **Implement** — Make the minimal fix following existing code patterns.
-5. **Test** — Write a regression test that fails without the fix and passes with it.
-6. **Verify** — Run the full test suite. Ensure no regressions.
-7. **Commit** — Use conventional commit format referencing the issue.
-8. **PR** — Create a PR that auto-closes the issue with full context.
-
-Keep the change minimal. Fix the bug, add the test, nothing else.
-CMD
-
-cat > "$PROJECT_DIR/.claude/commands/review.md" << 'CMD'
----
-description: "Review staged or uncommitted changes"
----
-
-# Code Review
-
-Review the current changes for quality, bugs, and security issues.
-
-## Steps
-
-1. **Gather** — Run `git diff` (or `git diff --cached` if changes are staged).
-2. **Analyze** each changed file for:
-   - **Bugs** — logic errors, off-by-one, null handling, race conditions
-   - **Security** — injection, auth bypasses, hardcoded secrets, XSS
-   - **Performance** — N+1 queries, unnecessary re-renders, missing indexes
-   - **Style** — naming, complexity, DRY violations
-3. **Summarize** findings as:
-   - 🔴 **Critical** — must fix before merge
-   - 🟡 **Warning** — should fix, not a blocker
-   - 🟢 **Suggestion** — nice to have
-4. **Suggest** specific fixes for each critical and warning item.
-CMD
-
-# --- Agents ---
-echo "🤖 Generating agents..."
-mkdir -p "$PROJECT_DIR/.claude/agents"
-
-cat > "$PROJECT_DIR/.claude/agents/architect.md" << 'AGENT'
+if [[ -d "$SCRIPT_DIR/templates/agents" ]]; then
+  cp "$SCRIPT_DIR/templates/agents/"*.md "$PROJECT_DIR/.claude/agents/"
+else
+  cat > "$PROJECT_DIR/.claude/agents/architect.md" << 'AGENT'
 ---
 name: architect
 description: "Plans features and makes architecture decisions"
@@ -517,7 +454,7 @@ Always produce a structured plan with:
 Never write implementation code. Your output is the plan.
 AGENT
 
-cat > "$PROJECT_DIR/.claude/agents/implementer.md" << 'AGENT'
+  cat > "$PROJECT_DIR/.claude/agents/implementer.md" << 'AGENT'
 ---
 name: implementer
 description: "Implements code from specs and plans"
@@ -542,21 +479,27 @@ You implement code based on plans and specifications.
 - Never skip tests
 - If the plan is ambiguous, stop and ask — don't guess
 AGENT
+fi
 
-# --- .gitignore additions ---
-echo "📄 Updating .gitignore..."
+# — .gitignore additions —
+
+echo "📄 Updating .gitignore…"
 if [[ -f "$PROJECT_DIR/.gitignore" ]]; then
   if ! grep -q "CLAUDE.local.md" "$PROJECT_DIR/.gitignore" 2>/dev/null; then
     echo "" >> "$PROJECT_DIR/.gitignore"
     echo "# Claude Code personal files" >> "$PROJECT_DIR/.gitignore"
     echo "CLAUDE.local.md" >> "$PROJECT_DIR/.gitignore"
     echo ".claude/settings.local.json" >> "$PROJECT_DIR/.gitignore"
+    echo ".claude/logs/" >> "$PROJECT_DIR/.gitignore"
+    echo ".claude/context-snapshots/" >> "$PROJECT_DIR/.gitignore"
   fi
 else
   cat > "$PROJECT_DIR/.gitignore" << 'GITIGNORE'
 # Claude Code personal files
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/logs/
+.claude/context-snapshots/
 GITIGNORE
 fi
 
@@ -567,7 +510,7 @@ echo "  CLAUDE.md                        — Project context (edit this!)"
 echo "  .claude/settings.json            — Team hooks + permissions"
 echo "  .claude/settings.local.json      — Personal hooks (gitignored)"
 echo "  .claude/rules/                   — Path-scoped rules"
-echo "  .claude/hooks/                   — TypeScript/bash hook scripts"
+echo "  .claude/hooks/                   — Hook scripts"
 echo "  .claude/commands/                — Slash commands"
 echo "  .claude/agents/                  — Subagent definitions"
 echo ""

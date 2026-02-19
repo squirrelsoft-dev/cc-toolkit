@@ -1,0 +1,47 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{FORMAT_CMD}}"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{STOP_TEST_CMD}}"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '## Git State' && git status --short && echo '' && echo '## Recent Commits' && git log --oneline -5"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "{{TEST_CMD}}",
+      "{{LINT_CMD}}",
+      "{{BUILD_CMD}}",
+      "git commit*",
+      "git push*",
+      "git checkout*",
+      "git branch*"
+    ]
+  }
+}
