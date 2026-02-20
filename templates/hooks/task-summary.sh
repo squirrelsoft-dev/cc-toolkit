@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# TaskCompleted hook — generates audit trail of what was done
+# Stop hook — generates audit trail of what was done in this session
 
 mkdir -p .claude/logs
 

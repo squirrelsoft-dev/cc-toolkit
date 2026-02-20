@@ -171,6 +171,10 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
           {
             "type": "command",
             "command": "$STOP_TEST_CMD"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/task-summary.sh"
           }
         ]
       }
