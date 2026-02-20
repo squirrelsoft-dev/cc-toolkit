@@ -57,7 +57,7 @@ cc-toolkit/
     │   ├── task-summary.sh
     │   └── save-context.sh
     ├── commands/
-    │   ├── plan.md
+    │   ├── spec.md
     │   ├── scaffold.md
     │   ├── commit.md
     │   ├── pr.md
