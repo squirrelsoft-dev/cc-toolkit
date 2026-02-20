@@ -14,7 +14,7 @@ A minimal, composable toolkit for scaffolding and optimizing Claude Code project
 
 ```bash
 # One-line install
-curl -fsSL https://raw.githubusercontent.com/squirrelsoft-dev/claude-code-flow/main/cc-toolkit/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/squirrelsoft-dev/cc-toolkit/install.sh | bash
 ```
 
 Or clone manually:
