@@ -3,14 +3,14 @@ set -euo pipefail
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CC Toolkit Installer
-# Install: curl -fsSL https://raw.githubusercontent.com/squirrelsoft-dev/claude-code-flow/main/cc-toolkit/install.sh | bash
+# Install: curl -fsSL https://raw.githubusercontent.com/squirrelsoft-dev/cc-toolkit/main/install.sh | bash
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 VERSION="1.0.0"
-REPO="squirrelsoft-dev/claude-code-flow"
+REPO="squirrelsoft-dev/cc-toolkit"
 BRANCH="main"
 INSTALL_DIR="${CC_TOOLKIT_DIR:-$HOME/cc-toolkit}"
-RAW_BASE="https://raw.githubusercontent.com/$REPO/$BRANCH/cc-toolkit"
+RAW_BASE="https://raw.githubusercontent.com/$REPO/$BRANCH"
 
 # Colors (if terminal supports them)
 if [ -t 1 ]; then
@@ -83,13 +83,8 @@ download_toolkit() {
   fi
 
   # Try git clone first (gets everything cleanly), fall back to curl
-  if git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR.tmp" 2>/dev/null; then
-    if [ -d "$INSTALL_DIR.tmp/cc-toolkit" ]; then
-      mv "$INSTALL_DIR.tmp/cc-toolkit" "$INSTALL_DIR"
-    else
-      mv "$INSTALL_DIR.tmp" "$INSTALL_DIR"
-    fi
-    rm -rf "$INSTALL_DIR.tmp"
+  if git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR" 2>/dev/null; then
+    rm -rf "$INSTALL_DIR/.git"
     success "Downloaded via git clone"
   else
     info "Git clone failed, falling back to direct download..."
@@ -111,8 +106,7 @@ download_toolkit() {
     if [ "$download_ok" = false ]; then
       error "Download failed. Try cloning manually:"
       echo ""
-      echo "    git clone https://github.com/$REPO.git"
-      echo "    ln -s \$(pwd)/claude-code-flow/cc-toolkit ~/cc-toolkit"
+      echo "    git clone https://github.com/$REPO.git ~/cc-toolkit"
       echo ""
       rm -rf "$INSTALL_DIR"
       exit 1
