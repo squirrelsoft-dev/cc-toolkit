@@ -14,14 +14,14 @@ A minimal, composable toolkit for scaffolding and optimizing Claude Code project
 
 ```bash
 # One-line install
-curl -fsSL https://raw.githubusercontent.com/squirrelsoft-dev/cc-toolkit/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/squirrelsoft-dev/cc-toolkit/refs/heads/main/install.sh | bash
 ```
 
 Or clone manually:
 
 ```bash
-git clone https://github.com/squirrelsoft-dev/claude-code-flow.git
-ln -s $(pwd)/claude-code-flow/cc-toolkit ~/cc-toolkit
+git clone https://github.com/squirrelsoft-dev/cc-toolkit.git
+ln -s $(pwd)/cc-toolkit ~/cc-toolkit
 echo 'source ~/cc-toolkit/shell-aliases.sh' >> ~/.zshrc
 ```
 
