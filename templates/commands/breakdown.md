@@ -12,13 +12,14 @@ The agent should:
 
 1. **Understand** — Restate the task. Ask clarifying questions if the scope is ambiguous.
 2. **Research** — Read relevant files to understand the codebase, architecture, and existing patterns.
-3. **Decompose** — Break the task into the smallest meaningful units of work.
-4. **Identify dependencies** — For each task, determine if it is:
+3. **Find relevant skills** — Search for community skills that may help with the task or its subtasks. Run `npx skills find <topic>` for key technologies or patterns involved. If a relevant skill is found, run `npx skills add <owner/repo@skill>` to install it. Installed skills will be available to all agents during implementation.
+4. **Decompose** — Break the task into the smallest meaningful units of work.
+5. **Identify dependencies** — For each task, determine if it is:
    - **Non-blocking** — independent, can be done anytime
    - **Blocked by** — cannot start until specific other tasks complete (list them)
    - **Blocking** — other tasks cannot start until this one completes (list them)
-5. **Group for parallelism** — Organize tasks into groups that can be worked on simultaneously. Tasks in the same group have no dependencies on each other. Later groups depend on earlier groups.
-6. **Save** — Create the `.claude/tasks/` directory if needed, then write the breakdown to `.claude/tasks/$ARGUMENTS.md` (kebab-case the filename).
+6. **Group for parallelism** — Organize tasks into groups that can be worked on simultaneously. Tasks in the same group have no dependencies on each other. Later groups depend on earlier groups.
+7. **Save** — Create the `.claude/tasks/` directory if needed, then write the breakdown to `.claude/tasks/$ARGUMENTS.md` (kebab-case the filename).
 
 ## Output Format
 

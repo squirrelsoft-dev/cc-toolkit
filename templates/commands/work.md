@@ -60,11 +60,12 @@ Switch to **plan mode** (`EnterPlanMode`). In the plan:
 
 1. Read each spec file for the tasks in the selected group from `.claude/specs/<task-list-name>/`.
 2. Identify dependencies between tasks — tasks within the group are parallel by design, but note any ordering preferences from `Blocked by` / `Blocking` fields in the specs.
-3. For each task, define an agent assignment:
+3. Search for relevant community skills by running `npx skills find <topic>` for key technologies or patterns across the group's tasks. If useful skills are found, run `npx skills add <owner/repo@skill>` to install them before spawning agents.
+4. For each task, define an agent assignment:
    - **Agent name** — derived from the task title (kebab-case)
    - **Agent type** — `general-purpose`
-   - **Prompt** — include the full spec content, the list of files to create/modify, and explicit instructions to implement the spec (not just plan).
-4. Present the plan to the user for approval via `ExitPlanMode`.
+   - **Prompt** — include the full spec content, the list of files to create/modify, and explicit instructions to implement the spec (not just plan). Include instructions to search for and install skills when encountering unfamiliar libraries or patterns (see Skills CLI below).
+5. Present the plan to the user for approval via `ExitPlanMode`.
 
 ### 7. Execute the team
 
@@ -74,6 +75,7 @@ After plan approval:
 2. For each task, use `TaskCreate` to add it to the team's task list.
 3. Spawn agents in parallel using the `Task` tool with `team_name` set to the team name. Each agent:
    - Reads its assigned spec file
+   - If the task involves an unfamiliar library or pattern, searches for a skill first: `npx skills find <topic>`, then `npx skills add <owner/repo@skill>` if a match is found
    - Implements the changes described in the spec
    - Runs any verification steps listed in the spec (tests, lint, type checks)
    - Reports completion
@@ -100,6 +102,20 @@ Print a summary:
 - Which groups are now unblocked for the next `/work` run
 - Confirm the task list file was updated (print the path)
 - Suggest the user review changes with `git diff` and then run `/squash-pr` when ready
+
+## Skills CLI
+
+When a task involves a library, framework, or pattern you're not confident about, use the skills CLI to find and install community skills that provide expert guidance.
+
+```bash
+# Search for skills by topic
+npx skills find <topic>
+
+# Install a skill from the results
+npx skills add <owner/repo@skill>
+```
+
+Include these instructions in every agent prompt so teammates can discover and install skills during implementation.
 
 ## Rules
 

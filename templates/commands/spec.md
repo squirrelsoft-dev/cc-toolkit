@@ -23,6 +23,7 @@ Generate detailed specification files from a task breakdown.
    - The full path to write its spec file: `.claude/specs/$ARGUMENTS/{task-title-kebab}.md`
 7. Each agent must:
    - Read the files listed in the task to understand existing code
+   - Search for relevant community skills by running `npx skills find <topic>` for the key technologies or patterns in the task. If a useful skill is found, run `npx skills add <owner/repo@skill>` to install it and note it in the spec under Implementation Details.
    - Write a spec file to `.claude/specs/$ARGUMENTS/{task-title-kebab}.md` using the format below
 8. After all agents complete, list the generated spec files for the user.
 
