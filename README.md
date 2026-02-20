@@ -1,6 +1,6 @@
 # CC Toolkit — Lightweight Claude Code Project Kit
 
-A minimal, composable toolkit for scaffolding and optimizing Claude Code projects. Unlike monolithic plugin suites with 50+ agents, this kit gives you a small set of high-value primitives that you customize per project.
+A minimal, composable toolkit for scaffolding and optimizing Claude Code projects. Unlike monolithic plugin suites with [50+ agents](https://github.com/squirrelsoft-dev/agency), this kit gives you a small set of high-value primitives that you customize per project.
 
 ## Philosophy
 
