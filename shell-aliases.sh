@@ -13,7 +13,7 @@ alias h="claude --model haiku"                            # Quick/cheap tasks
 alias cr="claude --resume"                                # Resume last session
 
 # One-shot (non-interactive, pipe-friendly)
-alias cp="claude -p"                                      # Print mode
+alias ccp="claude -p"                                     # Print mode
 alias hp="claude -p --model haiku"                        # Print mode with Haiku
 alias cj="claude -p --output-format json"                 # JSON output for scripting
 
