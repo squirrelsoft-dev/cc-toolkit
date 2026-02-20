@@ -144,15 +144,29 @@ echo "⚙️  Generating .claude/settings.json..."
 # Format hook — delegates to .claude/hooks/format.sh which auto-detects the formatter
 FORMAT_CMD='bash .claude/hooks/format.sh'
 
-# Build stop hook test command
-STOP_TEST_CMD="$TEST_CMD --passWithNoTests 2>&1 | tail -20"
-[[ "$LANG" == "python" ]] && STOP_TEST_CMD="pytest --tb=short -q 2>&1 | tail -20"
-[[ "$LANG" == "rust" ]] && STOP_TEST_CMD="cargo test 2>&1 | tail -20"
-[[ "$LANG" == "go" ]] && STOP_TEST_CMD="go test ./... 2>&1 | tail -20"
+# Build stop hook test command (used in stop-quality-gate.sh)
+STOP_TEST_CMD="$TEST_CMD"
+if grep -q '"jest"' "$PROJECT_DIR/package.json" 2>/dev/null; then
+  STOP_TEST_CMD="$TEST_CMD --passWithNoTests"
+fi
+[[ "$LANG" == "python" ]] && STOP_TEST_CMD="pytest --tb=short -q"
+[[ "$LANG" == "rust" ]] && STOP_TEST_CMD="cargo test"
+[[ "$LANG" == "go" ]] && STOP_TEST_CMD="go test ./..."
 
 cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/guard.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
@@ -170,11 +184,21 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
         "hooks": [
           {
             "type": "command",
-            "command": "$STOP_TEST_CMD"
+            "command": "bash .claude/hooks/stop-quality-gate.sh"
           },
           {
             "type": "command",
             "command": "bash .claude/hooks/task-summary.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/save-context.sh"
           }
         ]
       }
@@ -311,43 +335,11 @@ if [[ -d "$SCRIPT_DIR/templates/hooks" ]]; then
   cp "$SCRIPT_DIR/templates/hooks/"* "$PROJECT_DIR/.claude/hooks/"
   chmod +x "$PROJECT_DIR/.claude/hooks/"*.sh
   # Replace test command placeholder in quality gate hook
-  sed "s|{{TEST_CMD}}|$TEST_CMD|g" "$SCRIPT_DIR/templates/hooks/stop-quality-gate.sh" > "$PROJECT_DIR/.claude/hooks/stop-quality-gate.sh"
+  sed "s|{{TEST_CMD}}|$STOP_TEST_CMD|g" "$SCRIPT_DIR/templates/hooks/stop-quality-gate.sh" > "$PROJECT_DIR/.claude/hooks/stop-quality-gate.sh"
   chmod +x "$PROJECT_DIR/.claude/hooks/stop-quality-gate.sh"
-  # Remove TypeScript-only hook for non-TS projects
-  if [[ "$LANG" != "typescript" ]]; then
-    rm -f "$PROJECT_DIR/.claude/hooks/stop-typecheck.ts"
-  fi
+  # Remove redundant stop-typecheck.ts (quality gate handles typecheck)
+  rm -f "$PROJECT_DIR/.claude/hooks/stop-typecheck.ts"
 else
-  if [[ "$LANG" == "typescript" ]]; then
-    cat > "$PROJECT_DIR/.claude/hooks/stop-typecheck.ts" << 'HOOK'
-import type { StopHookInput, HookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
-
-const input: StopHookInput = await Bun.stdin.json();
-
-const gitStatus = await Bun.$`git status --porcelain`.quiet().text();
-
-if (gitStatus.trim().length === 0) {
-  const output: HookJSONOutput = { decision: "approve" };
-  console.log(JSON.stringify(output));
-  process.exit(0);
-}
-
-const typecheckErrors = await Bun.$`bun typecheck 2>&1 || npx tsc --noEmit 2>&1`.throws(false).quiet().text();
-
-if (typecheckErrors.trim().length > 0 && typecheckErrors.includes("error TS")) {
-  const output: HookJSONOutput = {
-    decision: "block",
-    reason: `Type errors detected. Fix these before stopping.\n\n${typecheckErrors}`,
-  };
-  console.log(JSON.stringify(output));
-  process.exit(0);
-}
-
-const output: HookJSONOutput = { decision: "approve" };
-console.log(JSON.stringify(output));
-HOOK
-  fi
-
   # Format hook — auto-detects formatter at runtime
   cat > "$PROJECT_DIR/.claude/hooks/format.sh" << 'HOOK'
 #!/usr/bin/env bash
