@@ -38,10 +38,31 @@ if [ ! -d "$SCRIPT_DIR/templates" ]; then
   exit 1
 fi
 
+# Self-update toolkit from GitHub
+step "Updating toolkit from GitHub..."
+REPO="squirrelsoft-dev/cc-toolkit"
+BRANCH="main"
+tmp_dir="$SCRIPT_DIR.tmp"
+rm -rf "$tmp_dir"
+
+if git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$tmp_dir" 2>/dev/null; then
+  rm -rf "$tmp_dir/.git"
+  rm -rf "$SCRIPT_DIR"
+  mv "$tmp_dir" "$SCRIPT_DIR"
+  chmod +x "$SCRIPT_DIR/init.sh" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/update.sh" 2>/dev/null || true
+  success "Toolkit updated to latest"
+else
+  rm -rf "$tmp_dir"
+  warn "Could not fetch latest toolkit — syncing from local copy"
+fi
+
+echo ""
+
 # Track counts
 added=0
 updated=0
 skipped=0
+removed=0
 
 # Sync a template directory into the project
 # Usage: sync_dir <template_subdir> <target_subdir>
@@ -74,6 +95,18 @@ sync_dir() {
       skipped=$((skipped + 1))
     fi
   done
+
+  # Remove files that no longer exist in templates
+  for file in "$dst"/*; do
+    [ -f "$file" ] || continue
+    local name
+    name=$(basename "$file")
+    if [ ! -f "$src/$name" ]; then
+      rm "$file"
+      warn "Removed $2/$name (no longer in templates)"
+      removed=$((removed + 1))
+    fi
+  done
 }
 
 sync_dir "commands" "commands"
@@ -85,9 +118,9 @@ sync_dir "hooks" "hooks"
 chmod +x "$CLAUDE_DIR/hooks/"*.sh 2>/dev/null || true
 
 echo ""
-if [ $added -eq 0 ] && [ $updated -eq 0 ]; then
+if [ $added -eq 0 ] && [ $updated -eq 0 ] && [ $removed -eq 0 ]; then
   success "Already up to date. ${DIM}($skipped files unchanged)${NC}"
 else
-  success "Done! ${BOLD}$added added${NC}, ${BOLD}$updated updated${NC}, ${DIM}$skipped unchanged${NC}"
+  success "Done! ${BOLD}$added added${NC}, ${BOLD}$updated updated${NC}, ${BOLD}$removed removed${NC}, ${DIM}$skipped unchanged${NC}"
 fi
 echo ""

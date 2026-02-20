@@ -6,6 +6,8 @@ description: "Break a high-level task into subtasks with dependency tracking"
 
 Use the Task tool to spawn a Plan agent in plan mode to break down the following task: `$ARGUMENTS`
 
+**Important** - This agent does not produce code or create any output other than generating the complete tasks file.
+
 The agent should:
 
 1. **Understand** — Restate the task. Ask clarifying questions if the scope is ambiguous.
