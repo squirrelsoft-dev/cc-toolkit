@@ -141,18 +141,8 @@ CLAUDEMD
 # --- settings.json (team hooks) ---
 echo "⚙️  Generating .claude/settings.json..."
 
-# Build format command based on detected formatter
-if [[ "$FORMATTER" == "prettier" ]]; then
-  FORMAT_CMD='npx prettier --write \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>/dev/null || true'
-elif [[ "$FORMATTER" == "biome" ]]; then
-  FORMAT_CMD='npx biome format --write \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>/dev/null || true'
-elif [[ "$FORMATTER" == "ruff" ]]; then
-  FORMAT_CMD='ruff format \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>/dev/null || true'
-elif [[ "$FORMATTER" == "rustfmt" ]]; then
-  FORMAT_CMD='rustfmt \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>/dev/null || true'
-elif [[ "$FORMATTER" == "gofmt" ]]; then
-  FORMAT_CMD='gofmt -w \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>/dev/null || true'
-fi
+# Format hook — delegates to .claude/hooks/format.sh which auto-detects the formatter
+FORMAT_CMD='bash .claude/hooks/format.sh'
 
 # Build stop hook test command
 STOP_TEST_CMD="$TEST_CMD --passWithNoTests 2>&1 | tail -20"
@@ -190,7 +180,7 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
         "hooks": [
           {
             "type": "command",
-            "command": "echo '## Git State' && git status --short && echo '' && echo '## Recent Commits' && git log --oneline -5"
+            "command": "echo '## Git State' && git status --short && echo '' && echo '## Recent Commits' && git log --oneline -5 2>/dev/null || echo '(no commits yet)'"
           }
         ]
       }
@@ -354,6 +344,47 @@ const output: HookJSONOutput = { decision: "approve" };
 console.log(JSON.stringify(output));
 HOOK
   fi
+
+  # Format hook — auto-detects formatter at runtime
+  cat > "$PROJECT_DIR/.claude/hooks/format.sh" << 'HOOK'
+#!/usr/bin/env bash
+# PostToolUse format hook — detects the project formatter and formats the changed file
+
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+[[ -z "$FILE_PATH" ]] && exit 0
+[[ ! -f "$FILE_PATH" ]] && exit 0
+
+if [[ -f "package.json" ]]; then
+  if [[ -f "biome.json" ]] || [[ -f "biome.jsonc" ]] || grep -q '"@biomejs/biome"' package.json 2>/dev/null; then
+    npx @biomejs/biome format --write "$FILE_PATH" 2>/dev/null || true
+    exit 0
+  fi
+  if [[ -f ".prettierrc" ]] || [[ -f ".prettierrc.json" ]] || [[ -f ".prettierrc.js" ]] || [[ -f "prettier.config.js" ]] || grep -q '"prettier"' package.json 2>/dev/null; then
+    npx prettier --write "$FILE_PATH" 2>/dev/null || true
+    exit 0
+  fi
+  npx prettier --write "$FILE_PATH" 2>/dev/null || npx @biomejs/biome format --write "$FILE_PATH" 2>/dev/null || true
+  exit 0
+fi
+
+if [[ -f "pyproject.toml" ]] || [[ -f "requirements.txt" ]]; then
+  ruff format "$FILE_PATH" 2>/dev/null || black "$FILE_PATH" 2>/dev/null || true
+  exit 0
+fi
+
+if [[ -f "Cargo.toml" ]]; then
+  rustfmt "$FILE_PATH" 2>/dev/null || true
+  exit 0
+fi
+
+if [[ -f "go.mod" ]]; then
+  gofmt -w "$FILE_PATH" 2>/dev/null || true
+  exit 0
+fi
+HOOK
+  chmod +x "$PROJECT_DIR/.claude/hooks/format.sh"
 fi
 
 # --- Commands ---

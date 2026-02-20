@@ -79,13 +79,18 @@ After plan approval:
    - Reports completion
 4. As agents complete, monitor for failures. If an agent fails, report the issue to the user.
 
-### 8. Mark tasks complete
+### 8. CRITICAL — Mark tasks complete in the task list file
+
+> **You MUST complete this step. Do not skip it. The task list file is the source of truth for progress.**
 
 After all agents in the group finish successfully:
 
-1. Read the task list file again (`.claude/tasks/<task-list-name>.md`).
-2. For each task that was implemented, change `- [ ]` to `- [x]` in the task list file.
-3. Write the updated file back.
+1. Read the task list file at `.claude/tasks/<task-list-name>.md`.
+2. For **every** task that was implemented in this group, find the line `- [ ] **Task title**` and replace it with `- [x] **Task title**`.
+3. Write the updated file back using the `Edit` tool (one edit per task, or read-then-write the whole file).
+4. **Verify** — re-read the file and confirm all implemented tasks now show `- [x]`. If any were missed, fix them.
+
+This step is **not optional**. If this step is skipped, `/work` will re-select already-completed tasks on the next run.
 
 ### 9. Summary
 
@@ -93,6 +98,7 @@ Print a summary:
 - Which tasks were completed
 - Files created or modified (aggregate from agent results)
 - Which groups are now unblocked for the next `/work` run
+- Confirm the task list file was updated (print the path)
 - Suggest the user review changes with `git diff` and then run `/squash-pr` when ready
 
 ## Rules
@@ -101,4 +107,4 @@ Print a summary:
 - Do NOT implement tasks that belong to other groups.
 - Each agent must follow its spec — the spec is the source of truth for implementation.
 - If a spec is ambiguous or incomplete, the agent should make reasonable choices consistent with existing codebase patterns.
-- After all work is done, always update the task list file to reflect completed tasks.
+- **ALWAYS update the task list file** (step 8) after work is done — this is mandatory, not a suggestion.
