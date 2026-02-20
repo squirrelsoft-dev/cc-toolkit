@@ -70,53 +70,57 @@ preflight() {
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 download_toolkit() {
-  step "Downloading CC Toolkit to $INSTALL_DIR..."
+  local is_update=false
 
   if [ -d "$INSTALL_DIR" ]; then
-    warn "Directory $INSTALL_DIR already exists."
-    read -rp "  Overwrite? [y/N] " confirm
-    if [[ ! "$confirm" =~ ^[yY]$ ]]; then
-      info "Aborted. Existing installation preserved."
-      exit 0
-    fi
-    rm -rf "$INSTALL_DIR"
+    is_update=true
+    step "Updating CC Toolkit in $INSTALL_DIR..."
+  else
+    step "Downloading CC Toolkit to $INSTALL_DIR..."
   fi
 
-  # Try git clone first (gets everything cleanly), fall back to curl
-  if git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR" 2>/dev/null; then
-    rm -rf "$INSTALL_DIR/.git"
-    success "Downloaded via git clone"
+  # Clone to a temp directory, then sync into INSTALL_DIR
+  local tmp_dir="$INSTALL_DIR.tmp"
+  rm -rf "$tmp_dir"
+
+  if git clone --depth 1 --branch "$BRANCH" "https://github.com/$REPO.git" "$tmp_dir" 2>/dev/null; then
+    rm -rf "$tmp_dir/.git"
   else
     info "Git clone failed, falling back to direct download..."
-    mkdir -p "$INSTALL_DIR"
+    mkdir -p "$tmp_dir"
 
-    local files=(
-      "README.md"
-      "init.sh"
-      "shell-aliases.sh"
-    )
-
-    local download_ok=true
-    for f in "${files[@]}"; do
-      if ! curl -fsSL "$RAW_BASE/$f" -o "$INSTALL_DIR/$f" 2>/dev/null; then
-        download_ok=false
-      fi
-    done
-
-    if [ "$download_ok" = false ]; then
+    # Download the repo as a tarball and extract
+    if curl -fsSL "https://github.com/$REPO/archive/refs/heads/$BRANCH.tar.gz" -o "$tmp_dir/archive.tar.gz" 2>/dev/null; then
+      tar -xzf "$tmp_dir/archive.tar.gz" -C "$tmp_dir" --strip-components=1
+      rm -f "$tmp_dir/archive.tar.gz"
+    else
       error "Download failed. Try cloning manually:"
       echo ""
       echo "    git clone https://github.com/$REPO.git ~/cc-toolkit"
       echo ""
-      rm -rf "$INSTALL_DIR"
+      rm -rf "$tmp_dir"
       exit 1
     fi
-
-    success "Downloaded core files"
   fi
+
+  # Sync: replace toolkit files, preserve nothing user-specific in INSTALL_DIR
+  # (user customizations live in each project's .claude/, not here)
+  if [ "$is_update" = true ]; then
+    # Remove old files and copy new ones in
+    rm -rf "$INSTALL_DIR"
+  fi
+
+  mv "$tmp_dir" "$INSTALL_DIR"
 
   chmod +x "$INSTALL_DIR/init.sh" 2>/dev/null || true
   chmod +x "$INSTALL_DIR/install.sh" 2>/dev/null || true
+  chmod +x "$INSTALL_DIR/update.sh" 2>/dev/null || true
+
+  if [ "$is_update" = true ]; then
+    success "Updated to latest version"
+  else
+    success "Downloaded successfully"
+  fi
 }
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -233,12 +237,14 @@ install_security_tools() {
   local tools_missing=()
 
   # Check each tool
-  local -A tool_info=(
-    [gitleaks]="Secret detection — finds API keys, tokens, passwords in code"
-    [semgrep]="SAST scanner — injection, XSS, OWASP Top 10"
-    [trivy]="Vulnerability scanner — deps, containers, IaC"
-    [oxlint]="Fast linter — 100x faster than ESLint"
-  )
+  tool_description() {
+    case "$1" in
+      gitleaks) echo "Secret detection — finds API keys, tokens, passwords in code" ;;
+      semgrep)  echo "SAST scanner — injection, XSS, OWASP Top 10" ;;
+      trivy)    echo "Vulnerability scanner — deps, containers, IaC" ;;
+      oxlint)   echo "Fast linter — 100x faster than ESLint" ;;
+    esac
+  }
 
   for tool in gitleaks semgrep trivy oxlint; do
     if command -v "$tool" &>/dev/null; then
@@ -246,7 +252,7 @@ install_security_tools() {
       success "$tool ${DIM}(installed)${NC}"
     else
       tools_missing+=("$tool")
-      info "$tool ${DIM}— ${tool_info[$tool]}${NC}"
+      info "$tool ${DIM}— $(tool_description "$tool")${NC}"
     fi
   done
 
@@ -347,7 +353,7 @@ print_next_steps() {
   echo -e "    ${CYAN}review${NC}   Review git diff with Claude"
   echo -e "    ${CYAN}gcm${NC}      Generate commit message from staged changes"
   echo ""
-  echo -e "  ${BOLD}Docs:${NC} https://github.com/$REPO/tree/$BRANCH/cc-toolkit"
+  echo -e "  ${BOLD}Docs:${NC} https://github.com/$REPO"
   echo ""
 }
 
@@ -358,10 +364,22 @@ print_next_steps() {
 main() {
   print_banner
   preflight
+
+  local is_update=false
+  [ -d "$INSTALL_DIR" ] && is_update=true
+
   download_toolkit
-  setup_shell
-  install_security_tools
-  print_next_steps
+
+  if [ "$is_update" = true ]; then
+    success "CC Toolkit updated! Reload your shell:"
+    echo ""
+    echo -e "    ${DIM}source ~/.zshrc${NC}"
+    echo ""
+  else
+    setup_shell
+    install_security_tools
+    print_next_steps
+  fi
 }
 
 main

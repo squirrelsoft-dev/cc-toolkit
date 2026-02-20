@@ -82,6 +82,17 @@ ccinit() {
   fi
 }
 
+# Update templates in an existing project
+unalias ccupdate 2>/dev/null
+ccupdate() {
+  local toolkit_dir="${CC_TOOLKIT_DIR:-$HOME/cc-toolkit}"
+  if [[ -f "$toolkit_dir/update.sh" ]]; then
+    bash "$toolkit_dir/update.sh" "${1:-.}"
+  else
+    echo "CC Toolkit not found. Set CC_TOOLKIT_DIR or install to ~/cc-toolkit"
+  fi
+}
+
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # GitHub shortcuts
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
