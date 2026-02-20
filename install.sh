@@ -274,7 +274,7 @@ install_security_tools() {
     return
   fi
 
-  read -rp "  Install missing tools? [y/N] " confirm
+  read -rp "  Install missing tools? [y/N] " confirm < /dev/tty
   if [[ ! "$confirm" =~ ^[yY]$ ]]; then
     info "Skipped. You can install them later — hooks will gracefully skip missing tools."
     return
