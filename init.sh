@@ -308,16 +308,15 @@ fi
 echo "🪝 Generating hooks..."
 
 if [[ -d "$SCRIPT_DIR/templates/hooks" ]]; then
-  cp "$SCRIPT_DIR/templates/hooks/guard.sh" "$PROJECT_DIR/.claude/hooks/"
-  cp "$SCRIPT_DIR/templates/hooks/task-summary.sh" "$PROJECT_DIR/.claude/hooks/"
-  cp "$SCRIPT_DIR/templates/hooks/save-context.sh" "$PROJECT_DIR/.claude/hooks/"
+  cp "$SCRIPT_DIR/templates/hooks/"* "$PROJECT_DIR/.claude/hooks/"
   chmod +x "$PROJECT_DIR/.claude/hooks/"*.sh
-  if [[ "$LANG" == "typescript" ]]; then
-    cp "$SCRIPT_DIR/templates/hooks/stop-typecheck.ts" "$PROJECT_DIR/.claude/hooks/"
-  fi
-  # Copy quality gate and replace test command placeholder
+  # Replace test command placeholder in quality gate hook
   sed "s|{{TEST_CMD}}|$TEST_CMD|g" "$SCRIPT_DIR/templates/hooks/stop-quality-gate.sh" > "$PROJECT_DIR/.claude/hooks/stop-quality-gate.sh"
   chmod +x "$PROJECT_DIR/.claude/hooks/stop-quality-gate.sh"
+  # Remove TypeScript-only hook for non-TS projects
+  if [[ "$LANG" != "typescript" ]]; then
+    rm -f "$PROJECT_DIR/.claude/hooks/stop-typecheck.ts"
+  fi
 else
   if [[ "$LANG" == "typescript" ]]; then
     cat > "$PROJECT_DIR/.claude/hooks/stop-typecheck.ts" << 'HOOK'
