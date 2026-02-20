@@ -371,6 +371,8 @@ main() {
   download_toolkit
 
   if [ "$is_update" = true ]; then
+    install_security_tools
+    echo ""
     success "CC Toolkit updated! Reload your shell:"
     echo ""
     echo -e "    ${DIM}source ~/.zshrc${NC}"
