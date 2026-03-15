@@ -1,10 +1,13 @@
 ---
-description: "Pick the next task grouping from a breakdown and implement it with an agent team"
+description: 'Pick the next task grouping from a breakdown and spin up an agent team to implement it'
 ---
 
 # Work Next Task
 
 Pick a task grouping from a task breakdown and spin up an agent team to implement it, guided by the specs.
+
+> **This command stops after agents complete.** It does NOT run quality gates or merge branches.
+> Run `/work-merge` next to gate, review, and merge the work into the feature branch.
 
 **Input:** `$ARGUMENTS` — optional task list name (maps to `.claude/tasks/$ARGUMENTS.md`). If omitted, the user picks from available task lists.
 
@@ -32,6 +35,7 @@ Read the selected task list file and parse its structure:
 ### 3. Let the user choose a task grouping
 
 Use `AskUserQuestion` to present the available (non-blocked, non-complete) groups. For each group show:
+
 - Group number and label
 - Count of incomplete tasks in the group
 - Task titles at a glance
@@ -48,13 +52,17 @@ Check that `.claude/specs/$ARGUMENTS/` exists and contains spec files. For each 
 
 ### 5. Create a feature branch
 
-Create and switch to a branch for this work:
+Derive the **task group name** as `<task-list-name>-group-<N>` (kebab-case). Create and switch to a branch for this work:
+
 ```
-git checkout -b work/<task-list-name>-group-<N>
+git checkout -b feat/<task-group-name>
 ```
+
 If the branch already exists, switch to it instead.
 
-### 6. Plan and build the agent team
+Record the feature branch name — it will be needed by `/work-merge`.
+
+### 6. Plan the agent team
 
 Switch to **plan mode** (`EnterPlanMode`). In the plan:
 
@@ -63,45 +71,81 @@ Switch to **plan mode** (`EnterPlanMode`). In the plan:
 3. Search for relevant community skills by running `npx skills find <topic>` for key technologies or patterns across the group's tasks. If useful skills are found, run `npx skills add <owner/repo@skill>` to install them before spawning agents.
 4. For each task, define an agent assignment:
    - **Agent name** — derived from the task title (kebab-case)
-   - **Agent type** — `general-purpose`
-   - **Prompt** — include the full spec content, the list of files to create/modify, and explicit instructions to implement the spec (not just plan). Include instructions to search for and install skills when encountering unfamiliar libraries or patterns (see Skills CLI below).
+   - **Worktree branch** — `work/<task-group-name>-<agent-number>` (e.g. `work/issue-10-group-1-1`)
+   - **Prompt** — include the full spec content, the list of files to create/modify, and explicit instructions to implement the spec (not just plan). Include instructions to search for and install skills when encountering unfamiliar libraries or patterns.
 5. Present the plan to the user for approval via `ExitPlanMode`.
 
-### 7. Execute the team
+### 7. Spawn implementation agents
 
-After plan approval:
+After plan approval, spawn one subagent per task using the `Agent` tool. All agents run in parallel.
 
-1. Use `TeamCreate` to create a team named `work-<task-list-name>-group-<N>`.
-2. For each task, use `TaskCreate` to add it to the team's task list.
-3. Spawn agents in parallel using the `Task` tool with `team_name` set to the team name. Each agent:
-   - Reads its assigned spec file
-   - If the task involves an unfamiliar library or pattern, searches for a skill first: `npx skills find <topic>`, then `npx skills add <owner/repo@skill>` if a match is found
-   - Implements the changes described in the spec
-   - Runs any verification steps listed in the spec (tests, lint, type checks)
-   - Reports completion
-4. As agents complete, monitor for failures. If an agent fails, report the issue to the user.
+**Every agent MUST use `isolation: "worktree"`.** Do NOT create or modify files directly on the feature branch. Parallel agents write to the same working directory without isolation and can silently overwrite each other's work. There are no exceptions to this rule.
 
-### 8. CRITICAL — Mark tasks complete in the task list file
+Each agent's worktree branch MUST be named `work/<task-group-name>-<agent-number>` (e.g. `work/issue-10-group-1-1`, `work/issue-10-group-1-2`), where `<agent-number>` is a sequential integer starting at 1.
 
-> **You MUST complete this step. Do not skip it. The task list file is the source of truth for progress.**
+For each task, call the `Agent` tool with:
 
-After all agents in the group finish successfully:
+- `subagent_type`: `"implementer"` (or `"general-purpose"` if implementer is unavailable)
+- `isolation`: `"worktree"`
+- `run_in_background`: `true`
+- `mode`: `"auto"`
+- `prompt`: Include the full spec content, the list of files to create/modify, and explicit instructions to implement the spec. Instruct the agent to **commit all changes** to its `work/` worktree branch before completing. Include the Skills CLI instructions below.
 
-1. Read the task list file at `.claude/tasks/<task-list-name>.md`.
-2. For **every** task that was implemented in this group, find the line `- [ ] **Task title**` and replace it with `- [x] **Task title**`.
-3. Write the updated file back using the `Edit` tool (one edit per task, or read-then-write the whole file).
-4. **Verify** — re-read the file and confirm all implemented tasks now show `- [x]`. If any were missed, fix them.
+Each agent:
 
-This step is **not optional**. If this step is skipped, `/work` will re-select already-completed tasks on the next run.
+1. Reads its assigned spec file
+2. If the task involves an unfamiliar library or pattern, searches for a skill first: `npx skills find <topic>`, then `npx skills add <owner/repo@skill>` if a match is found
+3. Implements the changes described in the spec
+4. Runs any verification steps listed in the spec (tests, lint, type checks)
+5. **Commits all changes** to its `work/<task-group-name>-<agent-number>` branch
+6. Reports completion status clearly
+
+As agents complete, monitor for failures. If an agent fails, report which agent failed and why.
+
+### 8. Write the session state file
+
+After all agents finish (success or failure), write a session state file at:
+
+```
+.claude/work-sessions/<task-group-name>.json
+```
+
+This file is required by `/work-merge`. Write it using the `Edit` tool with this structure:
+
+```json
+{
+  "taskListName": "<task-list-name>",
+  "taskGroupName": "<task-group-name>",
+  "featureBranch": "feat/<task-group-name>",
+  "groupNumber": <N>,
+  "agents": [
+    {
+      "agentNumber": 1,
+      "taskTitle": "<task title>",
+      "worktreeBranch": "work/<task-group-name>-1",
+      "status": "success" | "failed",
+      "specFile": ".claude/specs/<task-list-name>/<task-title-kebab>.md"
+    }
+  ]
+}
+```
+
+Include one entry per agent. Set `status` to `"success"` or `"failed"` based on the agent's reported outcome.
 
 ### 9. Summary
 
 Print a summary:
-- Which tasks were completed
-- Files created or modified (aggregate from agent results)
-- Which groups are now unblocked for the next `/work` run
-- Confirm the task list file was updated (print the path)
-- Suggest the user review changes with `git diff` and then run `/squash-pr` when ready
+
+- Task list and group that was worked
+- Feature branch created: `feat/<task-group-name>`
+- Each agent's worktree branch and status
+- Path to the session state file written
+- **Next step:** `Run /work-merge <task-group-name> to run quality gates and merge into the feature branch.`
+
+Do not mark tasks complete in the task list. Do not run quality gates. Do not merge anything.
+That is the job of `/work-merge`.
+
+---
 
 ## Skills CLI
 
@@ -115,12 +159,4 @@ npx skills find <topic>
 npx skills add <owner/repo@skill>
 ```
 
-Include these instructions in every agent prompt so teammates can discover and install skills during implementation.
-
-## Rules
-
-- Do NOT skip the user selection steps — always let the user confirm which task list and group to work on (unless there's only one option).
-- Do NOT implement tasks that belong to other groups.
-- Each agent must follow its spec — the spec is the source of truth for implementation.
-- If a spec is ambiguous or incomplete, the agent should make reasonable choices consistent with existing codebase patterns.
-- **ALWAYS update the task list file** (step 8) after work is done — this is mandatory, not a suggestion.
+Include these instructions in every agent prompt so agents can discover and install skills during implementation.

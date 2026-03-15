@@ -1,5 +1,5 @@
 ---
-description: "Generate feature directory structure with boilerplate"
+description: 'Generate feature directory structure with boilerplate'
 ---
 
 # Feature Scaffold

@@ -1,5 +1,5 @@
 ---
-description: "Squash branch commits into one clean commit and open a PR"
+description: 'Squash branch commits into one clean commit and open a PR'
 ---
 
 # Squash & PR
@@ -47,9 +47,11 @@ Squash all commits on the current branch into a single conventional commit and o
    Follow the same rules as `/commit`: imperative, lowercase description, no period. Scope is the primary module/feature affected.
 
 8. **Squash commits** — run:
+
    ```
    git reset --soft $(git merge-base <base> HEAD)
    ```
+
    Then commit all staged changes with the generated message using `git commit -m "<message>"`.
 
 9. **Force push** — run `git push --force-with-lease` to update the remote branch.

@@ -1,5 +1,5 @@
 ---
-description: "Deep security scan of the project (on-demand)"
+description: 'Deep security scan of the project (on-demand)'
 ---
 
 # Deep Security Scan
@@ -20,6 +20,7 @@ Run each tool that is available (skip any that aren't installed):
 ## Output
 
 Summarize findings grouped by severity:
+
 - 🔴 **Critical** — blocks deployment, must fix immediately
 - 🟡 **High** — should fix before next release
 - 🟢 **Medium/Low** — track and address when convenient

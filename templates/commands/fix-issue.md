@@ -1,5 +1,5 @@
 ---
-description: "Analyze and fix a GitHub issue end-to-end"
+description: 'Analyze and fix a GitHub issue end-to-end'
 ---
 
 # Fix GitHub Issue

@@ -27,10 +27,4 @@ feat, fix, docs, style, refactor, test, chore, perf, ci, build
 - Body explains what and why, not how
 - Reference issue numbers if identifiable from branch name or diff context
 
-## Workflow
-
-1. Run `git status` to see all changes (staged, unstaged, and untracked)
-2. Run `git diff` and `git diff --cached` to review changes
-3. If there are no staged changes, stage the appropriate files using `git add <file>...` (prefer specific files over `git add -A`)
-4. Generate the commit message based on all staged changes
-5. Run `git commit` with the generated message
+Output ONLY the commit message, nothing else. Then run `git commit -m "<message>"`.

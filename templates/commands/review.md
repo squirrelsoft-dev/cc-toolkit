@@ -1,5 +1,5 @@
 ---
-description: "Review staged or uncommitted changes"
+description: 'Review staged or uncommitted changes'
 ---
 
 # Code Review

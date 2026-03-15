@@ -1,5 +1,5 @@
 ---
-description: "Create a pull request with full context"
+description: 'Create a pull request with full context'
 ---
 
 # Pull Request Generator
