@@ -99,6 +99,7 @@ mkdir -p "$PROJECT_DIR/.claude/commands"
 mkdir -p "$PROJECT_DIR/.claude/hooks"
 mkdir -p "$PROJECT_DIR/.claude/rules"
 mkdir -p "$PROJECT_DIR/.claude/agents"
+mkdir -p "$PROJECT_DIR/.claude/skills"
 
 # --- CLAUDE.md ---
 echo "📝 Generating CLAUDE.md..."
@@ -553,6 +554,18 @@ You implement code based on plans and specifications.
 AGENT
 fi
 
+# --- Skills ---
+echo "🧠 Generating skills..."
+
+if [[ -d "$SCRIPT_DIR/templates/skills" ]]; then
+  for skill_dir in "$SCRIPT_DIR/templates/skills"/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_name=$(basename "$skill_dir")
+    mkdir -p "$PROJECT_DIR/.claude/skills/$skill_name"
+    cp "$skill_dir"* "$PROJECT_DIR/.claude/skills/$skill_name/"
+  done
+fi
+
 # — .gitignore additions —
 
 echo "📄 Updating .gitignore…"
@@ -585,6 +598,7 @@ echo "  .claude/rules/                   — Path-scoped rules"
 echo "  .claude/hooks/                   — Hook scripts"
 echo "  .claude/commands/                — Slash commands"
 echo "  .claude/agents/                  — Subagent definitions"
+echo "  .claude/skills/                  — Reusable skill definitions"
 echo ""
 echo "Next steps:"
 echo "  1. Review and customize CLAUDE.md for your project"
