@@ -142,9 +142,6 @@ CLAUDEMD
 # --- settings.json (team hooks) ---
 echo "⚙️  Generating .claude/settings.json..."
 
-# Format hook — delegates to .claude/hooks/format.sh which auto-detects the formatter
-FORMAT_CMD='bash .claude/hooks/format.sh'
-
 # Build stop hook test command (used in stop-quality-gate.sh)
 STOP_TEST_CMD="$TEST_CMD"
 if grep -q '"jest"' "$PROJECT_DIR/package.json" 2>/dev/null; then
@@ -154,7 +151,10 @@ fi
 [[ "$LANG" == "rust" ]] && STOP_TEST_CMD="cargo test"
 [[ "$LANG" == "go" ]] && STOP_TEST_CMD="go test ./..."
 
-cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
+if [[ -f "$SCRIPT_DIR/templates/settings.json" ]]; then
+  cp "$SCRIPT_DIR/templates/settings.json" "$PROJECT_DIR/.claude/settings.json"
+else
+  cat > "$PROJECT_DIR/.claude/settings.json" << 'SETTINGS'
 {
   "hooks": {
     "PreToolUse": [
@@ -163,7 +163,7 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/guard.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.sh\""
           }
         ]
       }
@@ -174,7 +174,7 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
         "hooks": [
           {
             "type": "command",
-            "command": "$FORMAT_CMD"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/format.sh\""
           }
         ]
       }
@@ -185,11 +185,11 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/stop-quality-gate.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-quality-gate.sh\""
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/task-summary.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/task-summary.sh\""
           }
         ]
       }
@@ -199,7 +199,7 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/save-context.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/save-context.sh\""
           }
         ]
       }
@@ -214,26 +214,40 @@ cat > "$PROJECT_DIR/.claude/settings.json" << SETTINGS
         ]
       }
     ]
-  },
-  "permissions": {
-    "allow": [
-      "$TEST_CMD",
-      "$LINT_CMD",
-      "$BUILD_CMD",
-      "git commit*",
-      "git push*",
-      "git checkout*",
-      "git branch*"
-    ]
   }
 }
 SETTINGS
+fi
 
-# --- settings.local.json (personal hooks) ---
+# --- settings.local.json (personal hooks + stack permissions) ---
 echo "🔒 Generating .claude/settings.local.json..."
+
+# Build stack-specific permission lines
+STACK_PERMS=""
+if [[ "$LANG" == "typescript" ]] || [[ "$LANG" == "javascript" ]]; then
+  STACK_PERMS='      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(npx turbo:*)",
+      "Bash(npx tsc:*)",'
+elif [[ "$LANG" == "python" ]]; then
+  STACK_PERMS='      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",'
+elif [[ "$LANG" == "rust" ]]; then
+  STACK_PERMS='      "Bash(cargo:*)",'
+elif [[ "$LANG" == "go" ]]; then
+  STACK_PERMS='      "Bash(go:*)",'
+fi
 
 cat > "$PROJECT_DIR/.claude/settings.local.json" << LOCALSET
 {
+  "permissions": {
+    "allow": [
+$STACK_PERMS
+      "Bash(Git add:*)",
+      "Bash(Git commit:*)"
+    ]
+  },
   "hooks": {
     "UserPromptSubmit": [
       {

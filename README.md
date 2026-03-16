@@ -39,11 +39,12 @@ cc-toolkit/
 ├── README.md
 ├── install.sh                   # curl-installable setup script
 ├── init.sh                      # Project scaffolder — run once per project
+├── update.sh                    # Sync templates to existing project
 ├── shell-aliases.sh             # Source in ~/.zshrc or ~/.bashrc
 └── templates/
     ├── CLAUDE.md.tmpl
-    ├── settings.json.tmpl
-    ├── settings.local.json.tmpl
+    ├── settings.json
+    ├── settings.local.json
     ├── rules/
     │   ├── general.md
     │   ├── api.md
@@ -51,22 +52,29 @@ cc-toolkit/
     │   ├── testing.md
     │   └── security.md
     ├── hooks/
-    │   ├── stop-typecheck.ts
-    │   ├── stop-quality-gate.sh
+    │   ├── format.sh
     │   ├── guard.sh
+    │   ├── stop-quality-gate.sh
     │   ├── task-summary.sh
     │   └── save-context.sh
     ├── commands/
-    │   ├── spec.md
-    │   ├── scaffold.md
+    │   ├── breakdown.md
     │   ├── commit.md
-    │   ├── pr.md
     │   ├── fix-issue.md
+    │   ├── pr.md
     │   ├── review.md
-    │   └── security-scan.md
-    └── agents/
-        ├── architect.md
-        └── implementer.md
+    │   ├── scaffold.md
+    │   ├── security-scan.md
+    │   ├── spec.md
+    │   ├── squash-pr.md
+    │   └── work.md
+    ├── agents/
+    │   ├── architect.md
+    │   ├── git-expert.md
+    │   ├── implementer.md
+    │   └── quality.md
+    └── skills/
+        └── triage/
 ```
 
 ## Customization

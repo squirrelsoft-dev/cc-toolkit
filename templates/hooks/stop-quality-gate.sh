@@ -20,7 +20,7 @@ if command -v semgrep &>/dev/null; then
 fi
 
 # 3. Type check (TypeScript projects)
-if [ -f tsconfig.json ]; then
+if [ -f "$CLAUDE_PROJECT_DIR/tsconfig.json" ]; then
   TC=$(npx tsc --noEmit 2>&1)
   echo "$TC" | grep -q "error TS" && ERRORS="$ERRORS\n## ❌ Type Errors\n$(echo "$TC" | grep 'error TS' | head -20)"
 fi
@@ -30,7 +30,7 @@ TESTS=$({{TEST_CMD}} 2>&1)
 [ $? -ne 0 ] && ERRORS="$ERRORS\n## 🧪 Test Failures\n$(echo "$TESTS" | tail -20)"
 
 # 5. Dependency audit (quick)
-if command -v npm &>/dev/null && [ -f package.json ]; then
+if command -v npm &>/dev/null && [ -f "$CLAUDE_PROJECT_DIR/package.json" ]; then
   AUDIT=$(npm audit --audit-level=high 2>&1)
   echo "$AUDIT" | grep -q "high\|critical" && ERRORS="$ERRORS\n## 📦 Vulnerable Dependencies\n$(echo "$AUDIT" | tail -10)"
 fi
