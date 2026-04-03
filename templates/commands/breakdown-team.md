@@ -4,7 +4,7 @@ description: 'Break a high-level task into subtasks organized by domain ownershi
 
 # Task Breakdown (Team)
 
-Use the Task tool to spawn a Plan agent in plan mode to break down the following task: `$ARGUMENTS`
+Spawn a general-purpose agent to break down the following task: `$ARGUMENTS`
 
 **Important** — This agent does not produce code or create any output other than generating the complete tasks file. The output is organized by **domain** (area of the codebase) rather than dependency groups, so that each agent in a team can own a non-overlapping slice of files.
 
@@ -84,10 +84,10 @@ _Files owned: `src/api/`, `src/middleware/`_
 
 _These files are touched by multiple domains. Coordination required._
 
-| File | Domains | Strategy |
-|------|---------|----------|
+| File                 | Domains | Strategy                                |
+| -------------------- | ------- | --------------------------------------- |
 | `src/types/index.ts` | ui, api | api writes interface; ui consumes after |
-| `package.json` | ui, lib | lib adds deps first; ui adds after |
+| `package.json`       | ui, lib | lib adds deps first; ui adds after      |
 ```
 
 ## Format Rules
