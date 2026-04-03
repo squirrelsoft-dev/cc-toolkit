@@ -11,20 +11,21 @@ Generate detailed specification files from a task breakdown.
 ## Workflow
 
 1. Read the task list file from `.claude/tasks/$ARGUMENTS.md`. If it doesn't exist, tell the user and suggest running `/breakdown $ARGUMENTS` first.
-2. Parse all tasks — items matching the pattern `- [ ] **Task title**`.
-3. Create the output directory `.claude/specs/$ARGUMENTS/`.
-4. For each task, spawn a subagent using the `Agent` tool in parallel. Use `run_in_background: true` so all agents run concurrently. Do **not** use `isolation: "worktree"` — spec agents only read code and write to `.claude/specs/`, so they won't conflict.
-5. Each agent receives:
+2. Check the file format — if the file contains `## Domain:` headers instead of `## Group N —` headers, tell the user: "This task file uses domain format. Use `/spec-team $ARGUMENTS` instead." and stop.
+3. Parse all tasks — items matching the pattern `- [ ] **Task title**`.
+4. Create the output directory `.claude/specs/$ARGUMENTS/`.
+5. For each task, spawn a subagent using the `Agent` tool in parallel. Use `run_in_background: true` so all agents run concurrently. Do **not** use `isolation: "worktree"` — spec agents only read code and write to `.claude/specs/`, so they won't conflict.
+6. Each agent receives:
    - The task title
    - The task description (lines following the checkbox until the next task)
    - The listed files
    - Dependency info (Blocked by / Blocking)
    - The full path to write its spec file: `.claude/specs/$ARGUMENTS/{task-title-kebab}.md`
-6. Each agent must:
+7. Each agent must:
    - Read the files listed in the task to understand existing code
    - Search for relevant community skills by running `npx skills find <topic>` for the key technologies or patterns in the task. If a useful skill is found, run `npx skills add <owner/repo@skill>` to install it and note it in the spec under Implementation Details.
    - Write a spec file to `.claude/specs/$ARGUMENTS/{task-title-kebab}.md` using the format below
-7. After all agents complete, list the generated spec files for the user.
+8. After all agents complete, list the generated spec files for the user.
 
 ## Spec File Format
 

@@ -23,7 +23,11 @@ Split `$ARGUMENTS` on whitespace. Extract:
 
 Read `.claude/tasks/<taskListName>.md`. If it doesn't exist, tell the user and stop.
 
-### 2. Parse the task list
+### 2. Check file format
+
+If the file contains `## Domain:` headers instead of `## Group N —` headers, tell the user: "This task file uses domain format. Use `/work-team $ARGUMENTS` instead." and stop.
+
+### 3. Parse the task list
 
 Parse the file structure:
 
@@ -35,13 +39,13 @@ Parse the file structure:
 
 If all groups are already complete, tell the user and stop.
 
-### 3. Verify specs exist
+### 4. Verify specs exist
 
 Before doing anything, check that `.claude/specs/<taskListName>/` contains a spec file for every incomplete task across all groups you intend to process. For each incomplete task, look for `.claude/specs/<taskListName>/<task-title-kebab>.md`.
 
 If any specs are missing, list them and suggest running `/spec <taskListName>` first. Stop.
 
-### 4. Enqueue groups via TaskCreate
+### 5. Enqueue groups via TaskCreate
 
 **If `--all` flag:**
 For each incomplete group in dependency order, call `TaskCreate` with:
@@ -62,7 +66,7 @@ Work All: <taskListName>
 **If single group:**
 Find the next available group. If multiple are available, use `AskUserQuestion` to let the user pick. Auto-select if only one is available. Call `TaskCreate` for that group only.
 
-### 5. Process the queue
+### 6. Process the queue
 
 Call `TaskList` to get pending tasks. For each pending task in order, run the pipeline below. After each group completes successfully, call `TaskUpdate` to mark it done before moving to the next.
 
